@@ -1,54 +1,28 @@
 # Gin Observability Demo with Niriksha SDK
 
-A Go application built with Gin and the Niriksha SDK to demonstrate observability concepts including distributed tracing, metrics, logs, latency analysis, error tracking, and continuous traffic generation using OpenTelemetry.
-
----
+A Go application built with Gin, OpenTelemetry, and the Niriksha SDK to demonstrate observability concepts including tracing, metrics, logs, latency analysis, error tracking, and traffic generation.
 
 ## Features
 
-* Gin-based HTTP service
-* Automatic request tracing using `otelgin`
-* Custom handler and service spans
-* Trace events
-* Structured application logs
+* Gin HTTP API
+* Automatic tracing via `otelgin`
+* Custom spans in handlers and services
+* Span events
+* Application logs
 * Custom metrics
 * Error simulation
 * Latency simulation
-* Continuous traffic generation script
-* Environment-based configuration
+* Traffic generation script
+* Docker support
 * Niriksha SDK integration
-
----
-
-## Project Structure
-
-```text
-cmd/
-└── server/
-    └── main.go
-
-internal/
-├── config/
-│   └── config.go
-├── handlers/
-│   ├── health.go
-│   └── product.go
-├── services/
-│   └── product_service.go
-└── telemetry/
-    ├── tracing.go
-    └── metrics.go
-
-scripts/
-└── generate_traffic.py
-```
 
 ---
 
 ## Prerequisites
 
-* Go 1.22+
+* Go 1.26.3
 * Python 3.x
+* Docker (optional)
 * Niriksha API Key
 
 ---
@@ -73,7 +47,7 @@ OTLP_HTTP_ENDPOINT=grpc-ingest.niriksha.ai:443
 
 ---
 
-## Installation
+## Run Locally
 
 Install dependencies:
 
@@ -81,17 +55,13 @@ Install dependencies:
 go mod tidy
 ```
 
----
-
-## Running the Application
-
-Start the server:
+Start the application:
 
 ```bash
 go run cmd/server/main.go
 ```
 
-Application runs on:
+Application URL:
 
 ```text
 http://localhost:8000
@@ -107,25 +77,11 @@ http://localhost:8000
 GET /health
 ```
 
-Response:
-
-```json
-{
-  "status": "ok"
-}
-```
-
----
-
-### Get Products
+### List Products
 
 ```http
 GET /products
 ```
-
-Returns all available products.
-
----
 
 ### Create Product
 
@@ -133,142 +89,68 @@ Returns all available products.
 POST /products
 ```
 
-Request:
-
-```json
-{
-  "id": "p3",
-  "name": "Widget C",
-  "price": 29.99
-}
-```
-
-Response:
-
-```json
-{
-  "id": "p3",
-  "name": "Widget C",
-  "price": 29.99
-}
-```
-
----
-
-## Observability Scenarios
-
-### Latency Simulation
-
-```http
-GET /products
-```
-
-The service layer introduces an intentional 2-second delay.
-
-Trace flow:
-
-```text
-HTTP Request
-    ↓
-products.list
-    ↓
-service.getProducts
-```
-
-This demonstrates how latency can be identified through traces.
-
----
-
-### Error Simulation
+### Simulate Failure
 
 ```http
 GET /products?fail=true
 ```
 
-Response:
-
-```json
-{
-  "error": "database connection failed"
-}
-```
-
-This generates:
-
-* Error traces
-* Error events
-* Error logs
-
 ---
 
-### Trace Events
+## Observability Features
 
-The application records custom trace events including:
+### Custom Spans
+
+Handler span:
+
+```text
+products.list
+products.create
+```
+
+Service span:
+
+```text
+service.getProducts
+```
+
+### Span Events
 
 ```text
 products fetched successfully
-
-database failure
-
 product created
+database failure
 ```
 
-These events appear within spans and provide additional execution context.
-
----
-
-### Application Logs
+### Logs
 
 Examples:
 
 ```text
-products requested, count=10
-
-product created: id=p1234 name=Product-15 price=42.50
-
+products requested, count=2
+product created: id=p123 name=Widget price=19.99
 failed to fetch products: database connection failed
 ```
 
-Logs help correlate application behavior with traces and metrics.
+### Metrics
 
----
+Counter:
 
-## Metrics
-
-### products.created
-
-Counter metric that increments whenever a new product is created.
-
-Triggered by:
-
-```http
-POST /products
+```text
+products.created
 ```
 
----
+Counter:
 
-### products.requested
-
-Counter metric that increments whenever the products endpoint is requested.
-
-Triggered by:
-
-```http
-GET /products
+```text
+products.requested
 ```
 
 ---
 
 ## Traffic Generator
 
-A traffic generation script is included to continuously generate:
-
-* Traces
-* Metrics
-* Logs
-* Errors
-
-Install Python dependency:
+Install dependency:
 
 ```bash
 pip install requests
@@ -280,76 +162,63 @@ Run:
 python scripts/generate_traffic.py
 ```
 
-The script continuously performs:
+The script continuously generates:
 
 ```text
 GET /products
-
 POST /products
-
-GET /products?fail=true (occasionally)
+GET /products?fail=true
 ```
 
-This allows observability dashboards to receive a constant stream of telemetry data.
+to produce traces, logs, metrics, and errors.
 
 ---
 
-## Telemetry Modes
+## Docker
 
-Supported modes:
+Build image:
 
-* grpc-direct
-* http-direct
+```bash
+docker build -t otel-gin-observability .
+```
 
-Current SDK examples use:
+Run container:
+
+```bash
+docker run --env-file .env -p 8000:8000 otel-gin-observability
+```
+
+---
+
+## Docker Validation Notes
+
+Testing performed using:
 
 ```text
-grpc-ingest.niriksha.ai:443
+Go 1.26.3
+Docker Desktop
+Niriksha SDK v0.0.8
 ```
 
-for telemetry export.
+Observed behavior:
+
+* Application starts successfully inside Docker.
+* `/health` responds correctly.
+* `/products` responds correctly.
 
 ---
 
-## Tracing
+## Project Goals
 
-Automatic request tracing is enabled through:
-
-```go
-otelgin.Middleware(...)
-```
-
-Custom spans include:
-
-```text
-products.list
-
-products.create
-
-service.getProducts
-```
-
-These spans help identify:
-
-* Request latency
-* Service bottlenecks
-* Failures
-* Business operations
-
----
-
-## What This Demo Demonstrates
+This project demonstrates:
 
 * Distributed tracing
 * Custom spans
-* Trace events
-* Application logs
-* Custom metrics
+* Span events
+* Metrics
+* Logs
 * Error tracking
 * Latency analysis
-* Continuous traffic generation
-* Niriksha SDK integration
+* Continuous telemetry generation
 * OpenTelemetry instrumentation
-
-```
-```
+* Docker deployment validation
