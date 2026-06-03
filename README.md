@@ -1,16 +1,21 @@
 # Gin Observability Demo with Niriksha SDK
 
-A sample Go application built with Gin and the Niriksha SDK to demonstrate distributed tracing, metrics, error tracking, and latency analysis using OpenTelemetry.
+A Go application built with Gin and the Niriksha SDK to demonstrate observability concepts including distributed tracing, metrics, logs, latency analysis, error tracking, and continuous traffic generation using OpenTelemetry.
+
+---
 
 ## Features
 
-* Gin HTTP server
+* Gin-based HTTP service
 * Automatic request tracing using `otelgin`
-* Custom spans for handlers and services
-* Custom metrics (`products.created`)
-* Error tracking
+* Custom handler and service spans
+* Trace events
+* Structured application logs
+* Custom metrics
+* Error simulation
 * Latency simulation
-* Service layer instrumentation
+* Continuous traffic generation script
+* Environment-based configuration
 * Niriksha SDK integration
 
 ---
@@ -33,6 +38,9 @@ internal/
 └── telemetry/
     ├── tracing.go
     └── metrics.go
+
+scripts/
+└── generate_traffic.py
 ```
 
 ---
@@ -40,6 +48,7 @@ internal/
 ## Prerequisites
 
 * Go 1.22+
+* Python 3.x
 * Niriksha API Key
 
 ---
@@ -64,10 +73,21 @@ OTLP_HTTP_ENDPOINT=grpc-ingest.niriksha.ai:443
 
 ---
 
-## Run
+## Installation
+
+Install dependencies:
 
 ```bash
 go mod tidy
+```
+
+---
+
+## Running the Application
+
+Start the server:
+
+```bash
 go run cmd/server/main.go
 ```
 
@@ -79,7 +99,7 @@ http://localhost:8000
 
 ---
 
-## Endpoints
+## API Endpoints
 
 ### Health Check
 
@@ -97,7 +117,7 @@ Response:
 
 ---
 
-### List Products
+### Get Products
 
 ```http
 GET /products
@@ -143,25 +163,29 @@ Response:
 GET /products
 ```
 
-The service layer intentionally introduces a 2-second delay to demonstrate latency analysis in traces.
+The service layer introduces an intentional 2-second delay.
 
 Trace flow:
 
 ```text
+HTTP Request
+    ↓
 products.list
     ↓
 service.getProducts
 ```
 
+This demonstrates how latency can be identified through traces.
+
 ---
 
-### Failure Simulation
+### Error Simulation
 
 ```http
 GET /products?fail=true
 ```
 
-Returns:
+Response:
 
 ```json
 {
@@ -169,7 +193,43 @@ Returns:
 }
 ```
 
-This can be used to demonstrate error tracking and trace debugging.
+This generates:
+
+* Error traces
+* Error events
+* Error logs
+
+---
+
+### Trace Events
+
+The application records custom trace events including:
+
+```text
+products fetched successfully
+
+database failure
+
+product created
+```
+
+These events appear within spans and provide additional execution context.
+
+---
+
+### Application Logs
+
+Examples:
+
+```text
+products requested, count=10
+
+product created: id=p1234 name=Product-15 price=42.50
+
+failed to fetch products: database connection failed
+```
+
+Logs help correlate application behavior with traces and metrics.
 
 ---
 
@@ -177,13 +237,60 @@ This can be used to demonstrate error tracking and trace debugging.
 
 ### products.created
 
-Counter metric that increments every time a product is successfully created.
+Counter metric that increments whenever a new product is created.
 
 Triggered by:
 
 ```http
 POST /products
 ```
+
+---
+
+### products.requested
+
+Counter metric that increments whenever the products endpoint is requested.
+
+Triggered by:
+
+```http
+GET /products
+```
+
+---
+
+## Traffic Generator
+
+A traffic generation script is included to continuously generate:
+
+* Traces
+* Metrics
+* Logs
+* Errors
+
+Install Python dependency:
+
+```bash
+pip install requests
+```
+
+Run:
+
+```bash
+python scripts/generate_traffic.py
+```
+
+The script continuously performs:
+
+```text
+GET /products
+
+POST /products
+
+GET /products?fail=true (occasionally)
+```
+
+This allows observability dashboards to receive a constant stream of telemetry data.
 
 ---
 
@@ -212,21 +319,37 @@ Automatic request tracing is enabled through:
 otelgin.Middleware(...)
 ```
 
-Custom spans are created for:
+Custom spans include:
 
-* products.list
-* products.create
-* service.getProducts
+```text
+products.list
 
-These spans help identify latency, failures, and service-level behavior.
+products.create
+
+service.getProducts
+```
+
+These spans help identify:
+
+* Request latency
+* Service bottlenecks
+* Failures
+* Business operations
 
 ---
 
-## What This Demo Shows
+## What This Demo Demonstrates
 
-* Request tracing
-* Service tracing
-* Error recording
+* Distributed tracing
+* Custom spans
+* Trace events
+* Application logs
 * Custom metrics
+* Error tracking
 * Latency analysis
-* Telemetry integration using Niriksha SDK
+* Continuous traffic generation
+* Niriksha SDK integration
+* OpenTelemetry instrumentation
+
+```
+```

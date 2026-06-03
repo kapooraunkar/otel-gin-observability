@@ -5,8 +5,11 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
-// ProductsCreated tracks how many products have been created.
-var ProductsCreated metric.Int64Counter
+// ProductsCreated tracks how many products have been created. ProductsRequested tracks the times it was visited
+var (
+	ProductsCreated   metric.Int64Counter
+	ProductsRequested metric.Int64Counter
+)
 
 // InitMetrics registers custom application metrics.
 func InitMetrics() error {
@@ -28,6 +31,19 @@ func InitMetrics() error {
 
 	// Store the counter so it can be used throughout the application.
 	ProductsCreated = counter
+
+	requestedCounter, err := meter.Int64Counter(
+		"products.requested",
+		metric.WithDescription(
+			"Total number of product requests",
+		),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	ProductsRequested = requestedCounter
 
 	return nil
 }

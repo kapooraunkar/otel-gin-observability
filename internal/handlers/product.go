@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"otel-gin-observability/internal/services"
 	"otel-gin-observability/internal/telemetry"
 
@@ -35,7 +36,21 @@ func GetProducts(c *gin.Context) {
 		fail,
 	)
 
+	telemetry.ProductsRequested.Add(
+		c.Request.Context(),
+		1,
+	)
+
 	if err != nil {
+
+		span.AddEvent(
+			"database failure",
+		)
+
+		log.Printf(
+			"failed to fetch products: %v",
+			err,
+		)
 
 		// Record the error in the active trace.
 		span.RecordError(err)
@@ -53,6 +68,15 @@ func GetProducts(c *gin.Context) {
 	// Add useful business metadata to the trace.
 	span.SetAttributes(
 		attribute.Int("products.count", len(products)),
+	)
+
+	log.Printf(
+		"products requested, count=%d",
+		len(products),
+	)
+
+	span.AddEvent(
+		"products fetched successfully",
 	)
 
 	c.JSON(
@@ -100,6 +124,17 @@ func CreateProduct(c *gin.Context) {
 
 	// Store the product using the service layer.
 	services.CreateProduct(p)
+
+	span.AddEvent(
+		"product created",
+	)
+
+	log.Printf(
+		"product created: id=%s name=%s price=%.2f",
+		p.ID,
+		p.Name,
+		p.Price,
+	)
 
 	// Increment the custom metric whenever a product is created.
 	telemetry.ProductsCreated.Add(
